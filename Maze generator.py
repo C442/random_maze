@@ -1,5 +1,5 @@
 import pygame
-from random import choice, randint
+from random import choice
 
 
 RES = WIDTH, HEIGHT = 1202, 902
@@ -9,6 +9,7 @@ cols, rows = WIDTH // TILE, HEIGHT // TILE
 
 pygame.init()
 sc = pygame.display.set_mode(RES)
+pygame.display.set_caption("Maze generator")
 clock = pygame.time.Clock()
 
 
@@ -19,11 +20,14 @@ class Cell:
         self.visited = False
         self.end = False
         self.start = False
+        self.path = False
 
     def draw(self):
         x, y = self.x * TILE, self.y * TILE
         if self.visited:
             pygame.draw.rect(sc, pygame.Color("black"), (x, y, TILE, TILE))
+        if self.path:
+            pygame.draw.rect(sc, pygame.Color("blue"), (x, y, TILE, TILE))
         if self.end:
             pygame.draw.rect(sc, pygame.Color("red"), (x+2, y+2, TILE-2, TILE-2))
         if self.start:
@@ -42,6 +46,7 @@ class Cell:
         pygame.draw.rect(sc, pygame.Color("orange"), (x, y, TILE, TILE))
 
     def check_cell(self, x, y):
+        global grid_cells
         find_index = lambda x, y: x + y * cols
         if x < 0 or x > cols - 1 or y < 0 or y > rows - 1:
             return False
@@ -49,9 +54,9 @@ class Cell:
 
     def check_neighbours(self):
         neighbours = []
-        top = self.check_cell(self.x, self.y + 1)
+        top = self.check_cell(self.x, self.y - 1)
         right = self.check_cell(self.x + 1, self.y)
-        bottom = self.check_cell(self.x, self.y - 1)
+        bottom = self.check_cell(self.x, self.y + 1)
         left = self.check_cell(self.x - 1, self.y)
         if top and not top.visited:
             neighbours.append(top)
@@ -60,6 +65,25 @@ class Cell:
         if bottom and not bottom.visited:
             neighbours.append(bottom)
         if left and not left.visited:
+            neighbours.append(left)
+        if neighbours:
+            return choice(neighbours)
+        else:
+            return False
+
+    def check_walls(self):
+        neighbours = []
+        top = self.check_cell(self.x, self.y - 1)
+        right = self.check_cell(self.x + 1, self.y)
+        bottom = self.check_cell(self.x, self.y + 1)
+        left = self.check_cell(self.x - 1, self.y)
+        if top and not top.walls["bottom"] and not top.visited:
+            neighbours.append(top)
+        if right and not right.walls["left"] and not right.visited:
+            neighbours.append(right)
+        if bottom and not bottom.walls["top"] and not bottom.visited:
+            neighbours.append(bottom)
+        if left and not left.walls["right"] and not left.visited:
             neighbours.append(left)
         if neighbours:
             return choice(neighbours)
@@ -85,11 +109,14 @@ def remove_walls(current, next):
 
 
 grid_cells = []
-for row in range(rows):
-    for col in range(cols):
-        grid_cells.append(Cell(col, row))
-current_cell = grid_cells[0]
 stack = []
+
+
+def create_cells_stack():
+    global grid_cells
+    for row in range(rows):
+        for col in range(cols):
+            grid_cells.append(Cell(col, row))
 
 
 def choose_start_end(grid_cells):
@@ -98,33 +125,80 @@ def choose_start_end(grid_cells):
         start, end = choice(grid_cells), choice(grid_cells)
     end.end = True
     start.start = True
-    return start, end
 
 
-start, end = choose_start_end(grid_cells)
-
-
-while True:
-    sc.fill(pygame.Color("darkslategray"))
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            exit()
+def solving():
+    global grid_cells
+    stack = []
+    current_cell = grid_cells[0]
     for cell in grid_cells:
-        cell.draw()
-    current_cell.visited = True
-    current_cell.draw_current_cell()
+        cell.visited = False
+        if cell.start:
+            current_cell = cell
+    while True:
+        sc.fill(pygame.Color("darkslategray"))
+        next_cell = current_cell.check_walls()
+        for way in grid_cells:
+            if way in stack:
+                way.path = True
+            else:
+                way.path = False
+        for cell in grid_cells:
+            cell.draw()
+        current_cell.draw_current_cell()
+        if current_cell.end:
+            break
+        if next_cell:
+            next_cell.visited = True
+            stack.append(current_cell)
+            current_cell = next_cell
+        else:
+            if len(stack) != 1:
+                stack.pop()
+                current_cell = stack[-1]
+            else:
+                break
+        pygame.display.flip()
+        clock.tick(30)
 
-    next_cell = current_cell.check_neighbours()
-    if next_cell:
-        next_cell.visited = True
-        stack.append(current_cell)
-        remove_walls(current_cell, next_cell)
-        current_cell = next_cell
-    else:
-        if len(stack) != 1:
-            stack.pop()
-            current_cell = stack[-1]
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+        for cell in grid_cells:
+            cell.draw()
 
-    pygame.display.flip()
-    clock.tick(30)
+
+def main():
+    global grid_cells
+    create_cells_stack()
+    current_cell = grid_cells[0]
+    choose_start_end(grid_cells)
+    while True:
+        sc.fill(pygame.Color("darkslategray"))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exit()
+        for cell in grid_cells:
+            cell.draw()
+        current_cell.visited = True
+        current_cell.draw_current_cell()
+        next_cell = current_cell.check_neighbours()
+        if next_cell:
+            next_cell.visited = True
+            stack.append(current_cell)
+            remove_walls(current_cell, next_cell)
+            current_cell = next_cell
+        else:
+            if len(stack) != 1:
+                stack.pop()
+                current_cell = stack[-1]
+            else:
+                break
+        pygame.display.flip()
+        clock.tick(30)
+    solving()
+
+
+if __name__ == '__main__':
+    main()
