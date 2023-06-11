@@ -145,6 +145,7 @@ def solving():
                 way.path = False
         for cell in grid_cells:
             cell.draw()
+        current_cell.visited = True
         current_cell.draw_current_cell()
         if current_cell.end:
             break
@@ -153,11 +154,9 @@ def solving():
             stack.append(current_cell)
             current_cell = next_cell
         else:
-            if len(stack) != 1:
-                stack.pop()
+            stack.pop()
+            if len(stack) != 0:
                 current_cell = stack[-1]
-            else:
-                break
         pygame.display.flip()
         clock.tick(30)
 
@@ -190,8 +189,8 @@ def main():
             remove_walls(current_cell, next_cell)
             current_cell = next_cell
         else:
-            if len(stack) != 1:
-                stack.pop()
+            stack.pop()
+            if len(stack) != 0:
                 current_cell = stack[-1]
             else:
                 break
