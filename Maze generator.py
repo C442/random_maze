@@ -3,12 +3,13 @@ from random import choice
 
 
 RES = WIDTH, HEIGHT = 1202, 902
-TILE = 10
+RES_WINDOW = T_WIDTH, T_HEIGHT = 1800, HEIGHT
+TILE = 50
 cols, rows = WIDTH // TILE, HEIGHT // TILE
 
 
 pygame.init()
-sc = pygame.display.set_mode(RES)
+sc = pygame.display.set_mode(RES_WINDOW)
 pygame.display.set_caption("Maze generator")
 clock = pygame.time.Clock()
 
@@ -91,6 +92,33 @@ class Cell:
             return False
 
 
+class Button:
+    def __init__(self, x, y, width, height, text):
+        self.x, self.y = x, y
+        self.width, self.height = width, height
+        self.pressed = False
+        self.hover = False
+        self.text = text
+        self.color = {"normal": (255, 165, 0), "hover": (139, 64, 0), "pressed": (0, 255, 0)}
+
+    def draw(self):
+        colors = self.color
+        text = self.text
+        x, y = self.x, self.y
+        size = 32
+        width, height = self.width, self.height
+        if self.hover:
+            color = colors["hover"]
+        elif self.pressed:
+            color = colors["pressed"]
+        else:
+            color = colors["normal"]
+        pygame.draw.rect(sc, pygame.Color(color), (x, y, width, height))
+        font = pygame.font.Font('freesansbold.ttf', size)
+        text = font.render(text, True, (0, 0, 0), None)
+        sc.blit(text, (x+width//2-size, y+height//2-(size//2)))
+
+
 def remove_walls(current, next):
     dx = current.x - next.x
     if dx == 1:
@@ -141,6 +169,7 @@ def choose_start_end(grid_cells):
 
 def solving():
     global grid_cells
+    interface()
     choose_start_end(grid_cells)
     stack = []
     current_cell = grid_cells[0]
@@ -149,7 +178,7 @@ def solving():
         if cell.start:
             current_cell = cell
     while True:
-        sc.fill(pygame.Color("darkslategray"))
+        pygame.draw.rect(sc, pygame.Color("darkslategray"), (0, 0, WIDTH, HEIGHT))
         next_cell = current_cell.check_walls()
         for way in grid_cells:
             if way in stack:
@@ -171,8 +200,7 @@ def solving():
                 current_cell = stack[-1]
                 stack.pop()
         pygame.display.flip()
-        clock.tick(1000)
-
+        clock.tick(100)
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -181,12 +209,13 @@ def solving():
             cell.draw()
 
 
-def main():
-    global grid_cells
+def maze_generate():
+    global grid_cells, RES, RES_WINDOW
     create_cells_stack()
     current_cell = grid_cells[0]
     while True:
-        sc.fill(pygame.Color("darkslategray"))
+        interface()
+        pygame.draw.rect(sc, pygame.Color("darkslategray"), (0, 0, WIDTH, HEIGHT))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 exit()
@@ -207,7 +236,21 @@ def main():
             else:
                 break
         pygame.display.flip()
-        clock.tick(1000)
+        clock.tick(50)
+
+
+def interface():
+    global RES, RES_WINDOW
+    pygame.draw.rect(sc, pygame.Color("beige"), (WIDTH, 0, T_WIDTH-WIDTH, HEIGHT))
+    font = pygame.font.Font('freesansbold.ttf', 64)
+    text = font.render("INTERFACE", True, (0, 0, 0), None)
+    sc.blit(text, (WIDTH + 125, 20))
+    test = Button(1370, 200, 300, 50, "Test")
+    test.draw()
+
+
+def main():
+    maze_generate()
     solving()
 
 
