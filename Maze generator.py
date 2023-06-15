@@ -3,7 +3,7 @@ from random import choice
 
 
 RES = WIDTH, HEIGHT = 1202, 902
-TILE = 100
+TILE = 10
 cols, rows = WIDTH // TILE, HEIGHT // TILE
 
 
@@ -43,7 +43,7 @@ class Cell:
 
     def draw_current_cell(self):
         x, y = self.x * TILE, self.y * TILE
-        pygame.draw.rect(sc, pygame.Color("orange"), (x, y, TILE, TILE))
+        pygame.draw.rect(sc, pygame.Color("purple"), (x, y, TILE, TILE))
 
     def check_cell(self, x, y):
         global grid_cells
@@ -121,14 +121,27 @@ def create_cells_stack():
 
 def choose_start_end(grid_cells):
     start, end = choice(grid_cells), choice(grid_cells)
-    while ((end.x - start.x)**2 + (end.y - start.y)**2)**1/2 <= 10:
-        start, end = choice(grid_cells), choice(grid_cells)
+    wall_count_s = 0
+    while wall_count_s < 3:
+        wall_count_s = 0
+        start = choice(grid_cells)
+        for wall_s in start.walls:
+            if start.walls[wall_s]:
+                wall_count_s += 1
+    wall_count_e = 0
+    while wall_count_e < 3 or end == start:
+        wall_count_e = 0
+        end = choice(grid_cells)
+        for wall_e in end.walls:
+            if end.walls[wall_e]:
+                wall_count_e += 1
     end.end = True
     start.start = True
 
 
 def solving():
     global grid_cells
+    choose_start_end(grid_cells)
     stack = []
     current_cell = grid_cells[0]
     for cell in grid_cells:
@@ -154,11 +167,11 @@ def solving():
             stack.append(current_cell)
             current_cell = next_cell
         else:
-            stack.pop()
             if len(stack) != 0:
                 current_cell = stack[-1]
+                stack.pop()
         pygame.display.flip()
-        clock.tick(30)
+        clock.tick(1000)
 
     while True:
         for event in pygame.event.get():
@@ -172,7 +185,6 @@ def main():
     global grid_cells
     create_cells_stack()
     current_cell = grid_cells[0]
-    choose_start_end(grid_cells)
     while True:
         sc.fill(pygame.Color("darkslategray"))
         for event in pygame.event.get():
@@ -195,7 +207,7 @@ def main():
             else:
                 break
         pygame.display.flip()
-        clock.tick(30)
+        clock.tick(1000)
     solving()
 
 
