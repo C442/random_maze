@@ -23,6 +23,7 @@ class Cell:
         self.start = False
         self.path = False
 
+
     def draw(self):
         x, y = self.x * TILE, self.y * TILE
         if self.visited:
@@ -101,40 +102,42 @@ class Button:
         self.invisible = False
         self.text = text
         self.color = {"normal": (255, 165, 0), "hover": (139, 64, 0), "pressed": (0, 255, 0)}
+        self.locked = False
 
     def draw(self):
-        if not self.invisible:
-            colors = self.color
-            text = self.text
-            x, y = self.x, self.y
-            width, height = self.width, self.height
-            self.check_mouse()
-            if self.hover:
-                color = colors["hover"]
-            elif self.pressed:
-                color = colors["pressed"]
-            else:
-                color = colors["normal"]
-            pygame.draw.rect(sc, pygame.Color(color), (x, y, width, height))
-            font = pygame.font.Font('freesansbold.ttf', 32)
-            text1 = font.render(text, True, (0, 0, 0), None)
-            center_x = x + width // 2 - (text1.get_width() // 2)
-            center_y = y + height // 2 - (text1.get_height() // 2)
-            sc.blit(text1, (center_x, center_y))
+        colors = self.color
+        text = self.text
+        x, y = self.x, self.y
+        width, height = self.width, self.height
+        self.check_mouse()
+        if self.hover:
+            color = colors["hover"]
+        elif self.pressed:
+            color = colors["pressed"]
+        else:
+            color = colors["normal"]
+        pygame.draw.rect(sc, pygame.Color(color), (x, y, width, height))
+        font = pygame.font.Font('freesansbold.ttf', 32)
+        text1 = font.render(text, True, (0, 0, 0), None)
+        center_x = x + width // 2 - (text1.get_width() // 2)
+        center_y = y + height // 2 - (text1.get_height() // 2)
+        sc.blit(text1, (center_x, center_y))
 
     def check_mouse(self):
         x, y = self.x, self.y
         width, height = self.width, self.height
         mouse = pygame.mouse.get_pos()
         mouse_click = pygame.mouse.get_pressed(3)
-        if x <= mouse[0] <= x + width and y <= mouse[1] <= y + height:
-            if mouse_click[0]:
-                self.pressed = True
+        if not self.locked:
+            if x <= mouse[0] <= x + width and y <= mouse[1] <= y + height:
+                if mouse_click[0]:
+                    self.pressed = True
+                else:
+                    self.hover = True
+                    self.pressed = False
             else:
-                self.hover = True
-                self.pressed = False
-        else:
-            self.hover = False
+                self.hover = False
+
 
 
 def remove_walls(current, next):
@@ -187,7 +190,6 @@ def choose_start_end(grid_cells):
 
 def solving():
     global grid_cells
-    interface()
     choose_start_end(grid_cells)
     stack = []
     current_cell = grid_cells[0]
@@ -219,12 +221,6 @@ def solving():
                 stack.pop()
         pygame.display.flip()
         clock.tick(100)
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                exit()
-        for cell in grid_cells:
-            cell.draw()
 
 
 def maze_generate():
@@ -252,7 +248,7 @@ def maze_generate():
             else:
                 break
         pygame.display.flip()
-        clock.tick(50)
+        clock.tick(5000)
 
 
 def interface():
@@ -260,6 +256,11 @@ def interface():
     global grid_cells, RES, RES_WINDOW
     create_cells_stack()
     buttons = []
+    generate = Button(WIDTH + 150, 200, 300, 50, "GENERATE")
+    load = Button(WIDTH + 150, 400, 300, 50, "LOAD")
+    quit = Button(WIDTH + 150, 800, 300, 50, "QUIT")
+    solve = Button(WIDTH + 150, 600, 300, 50, "SOLVE")
+    buttons.extend([generate, load, quit, solve])
     while True:
         pygame.draw.rect(sc, pygame.Color("darkslategray"), (0, 0, WIDTH, HEIGHT))
         for event in pygame.event.get():
@@ -272,25 +273,24 @@ def interface():
         text = font.render("INTERFACE", True, (0, 0, 0), None)
         center_x = WIDTH + (T_WIDTH - WIDTH) // 2 - (text.get_width() // 2)
         sc.blit(text, (center_x, 20))
-        generate = Button(WIDTH + 150, 200, 300, 50, "GENERATE")
-        load = Button(WIDTH + 150, 400, 300, 50, "LOAD")
-        quit = Button(WIDTH + 150, 600, 300, 50, "QUIT")
-        buttons.extend([generate, load, quit])
         for button in buttons:
-            button.draw()
-        if generate.pressed:
-            for button in buttons:
-                button.invisible = True
+            if not button.locked:
+                button.draw()
+        if generate.pressed and not generate.locked:
             maze_generate()
+            generate.locked = True
+        if solve.pressed and not solve.locked:
+            solving()
+            solve.locked = True
         if quit.pressed:
             exit()
         pygame.display.flip()
-        clock.tick(50)
+        clock.tick(100)
 
 
 def main():
     interface()
-    solving()
+
 
 
 if __name__ == '__main__':
